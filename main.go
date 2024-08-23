@@ -1,36 +1,15 @@
 package main
 
 import (
-	"errors"
+	"bank/fileops"
 	"fmt"
-	"os"
-	"strconv"
+	"github.com/Pallinder/go-randomdata"
 )
 
 const balanceFilename = "balance.txt"
 
-func readBalanceFromFile() (float64, error) {
-	data, err := os.ReadFile(balanceFilename)
-
-	if err != nil {
-		return 0, errors.New("failed to find or read balance file")
-	}
-
-	balance, err := strconv.ParseFloat(string(data), 64)
-
-	if err != nil {
-		return 0, errors.New("failed to parse balance file")
-	}
-
-	return balance, nil
-}
-
-func writeBalanceToFile(balance float64) {
-	os.WriteFile(balanceFilename, []byte(fmt.Sprintf("%.2f", balance)), 0644)
-}
-
 func main() {
-	accountBalance, err := readBalanceFromFile()
+	accountBalance, err := fileops.ReadFloatFromFile(balanceFilename)
 
 	if err != nil {
 		fmt.Println(err)
@@ -38,14 +17,10 @@ func main() {
 	}
 
 	fmt.Println("Welcome to Go Bank!")
+	fmt.Println("Reach us at ", randomdata.PhoneNumber())
 
 	for {
-		fmt.Println("What do you want to do?")
-		fmt.Println("1. Check balance")
-		fmt.Println("2. Deposit money")
-		fmt.Println("3. Withdraw money")
-		fmt.Println("4. Exit")
-
+		presentOptions()
 		var choice int
 		fmt.Print("Your choice: ")
 		fmt.Scan(&choice)
@@ -54,9 +29,9 @@ func main() {
 		case 1:
 			displayBalance(accountBalance)
 		case 2:
-			depositOrWithdraw(accountBalance, false)
+			accountBalance = depositOrWithdraw(accountBalance, false)
 		case 3:
-			depositOrWithdraw(accountBalance, true)
+			accountBalance = depositOrWithdraw(accountBalance, true)
 		case 4:
 			fmt.Println("Have a good day!")
 			return
@@ -69,7 +44,7 @@ func main() {
 	}
 }
 
-func depositOrWithdraw(accountBalance float64, withdraw bool) {
+func depositOrWithdraw(accountBalance float64, withdraw bool) float64 {
 	choice := "deposit"
 
 	if withdraw {
@@ -81,9 +56,9 @@ func depositOrWithdraw(accountBalance float64, withdraw bool) {
 	var amount float64
 	fmt.Scan(&amount)
 
-	if amount <= 0 || amount > accountBalance {
+	if amount <= 0 || (withdraw && amount > accountBalance) {
 		fmt.Println("Invalid amount entered.")
-		return
+		return accountBalance
 	}
 
 	if withdraw {
@@ -93,7 +68,9 @@ func depositOrWithdraw(accountBalance float64, withdraw bool) {
 	}
 
 	displayBalance(accountBalance)
-	writeBalanceToFile(accountBalance)
+	fileops.WriteFloatToFile(accountBalance, balanceFilename)
+
+	return accountBalance
 }
 
 func displayBalance(accountBalance float64) {
